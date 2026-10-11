@@ -93,7 +93,58 @@ if(type==='subscription'){b=`<div class="grid3" style="grid-template-columns:1fr
 if(type==='help'){b=`<p>Use the navigation to open resume analysis, resume builder, mock tests, coaching, and plans. This is a front-end prototype; accounts, AI APIs, payments, and coach scheduling need backend integrations before launch.</p><button class="btn primary full" onclick="closeModal()">Got it</button>`}
 document.getElementById('modalBody').innerHTML=b;document.getElementById('modalback').classList.add('show')}
 function closeModal(){document.getElementById('modalback').classList.remove('show')}
-async function accountSubmit(e,type){e.preventDefault();if(!sb){toast('Add your Supabase URL and anon key in supabase-config.js first.');return}const form=e.target,email=form.querySelector('input[type="email"]').value.trim(),password=form.querySelector('input[type="password"]').value;try{let result;if(type==='signup'){const name=document.getElementById('accountName').value.trim();result=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});if(result.error)throw result.error;if(!result.data.session){toast('Account created. Check your email to confirm, then log in.');closeModal();return}}else{result=await sb.auth.signInWithPassword({email,password});if(result.error)throw result.error}localStorage.setItem('preppilot_user',JSON.stringify({name:result.data.user.user_metadata?.full_name||result.data.user.email,email:result.data.user.email}));toast(type==='signup'?'Account created!':'Welcome back!');closeModal();await refreshDashboard()}catch(err){toast(err.message||'Authentication failed.')}}
+
+async function accountSubmit(e, type) {
+  e.preventDefault();
+
+  if (!sb) {
+    toast("Supabase is not configured.");
+    return;
+  }
+
+  const form = e.target;
+  const inputs = form.querySelectorAll("input");
+  const email = inputs[type === "signup" ? 1 : 0].value.trim();
+  const password = inputs[type === "signup" ? 2 : 1].value;
+  const name = type === "signup"
+    ? inputs[0].value.trim()
+    : "";
+
+  try {
+    let result;
+
+    if (type === "signup") {
+      result = await sb.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name }
+        }
+      });
+    } else {
+      result = await sb.auth.signInWithPassword({
+        email,
+        password
+      });
+    }
+
+    if (result.error) throw result.error;
+
+    if (type === "signup" && !result.data.session) {
+      toast("Check your email to confirm your account.");
+      return;
+    }
+
+    closeModal();
+    toast(type === "login" ? "Welcome back!" : "Account created!");
+
+    await refreshDashboard();
+  } catch (error) {
+    console.error("Authentication error:", error);
+    toast(error.message || "Authentication failed.");
+  }
+}
+
 async function analyzeResume(){let text=document.getElementById('resumeText').value.trim(),role=document.getElementById('targetRole').value.trim()||'your target role';if(text.length<30){toast('Paste a little more resume text to analyze.');return}let words=text.split(/\s+/).length,skills=/skills|python|java|sql|javascript|react|project/i.test(text),projects=/project/i.test(text),education=/education|diploma|degree|university|college/i.test(text),experience=/experience|internship|work/i.test(text),score=Math.min(96,35+(words>100?15:words>50?9:3)+(skills?14:0)+(projects?12:0)+(education?10:0)+(experience?10:0));stats.resume=score;if(sb){try{const {data:{user}}=await sb.auth.getUser();if(user){const feedback=[skills?'Skills or technical terms detected; tailor them to the target role.':'Add a clearly labelled Skills section with relevant tools.',projects?'Projects section detected; add measurable outcomes.':'Add 2–3 projects with your contribution and results.',education?'Education details detected.':'Add your education and expected graduation year.',experience?'Experience-related details detected.':'Include relevant training or internships if available.','Tailor keywords to the target job description.'];const {error}=await sb.from('resume_analyses').insert({user_id:user.id,target_role:role,score,feedback});if(error)throw error;}}catch(err){console.warn('Could not save resume analysis',err.message)}}document.getElementById('resumeCount').textContent=score+'/100';document.getElementById('resumeProgress').style.width=score+'%';document.getElementById('resumeProgressText').textContent=score+'%';document.getElementById('analysisResult').innerHTML=`<div class="result"><h3>Demo review · ${score}/100</h3><p>Target role: <b>${esc(role)}</b></p><p>${words} words reviewed. ${skills?'Skills or technical terms found.':'Add a clearly labelled Skills section with relevant tools.'}</p><ul>${projects?'<li>Projects section detected — add measurable outcomes.</li>':'<li>Add 2–3 projects with your contribution and results.</li>'}${education?'<li>Education section detected — keep qualification and year easy to scan.</li>':'<li>Add your education and expected graduation year.</li>'}${experience?'<li>Experience-related details detected — use action verbs and impact.</li>':'<li>If you have training, internships, or volunteering, include relevant details.</li>'}<li>Tailor keywords to the ${esc(role)} job description.</li></ul><small class="muted">This is a rule-based demo score, not a validated AI or ATS score.</small></div>`;toast('Resume demo review completed.')}
 function buildResume(){let n=document.getElementById('rName').value.trim()||'Your Name',role=document.getElementById('rRole').value.trim()||'Target Role',skills=document.getElementById('rSkills').value.trim()||'Add your skills',edu=document.getElementById('rEdu').value.trim()||'Add your education',proj=document.getElementById('rProjects').value.trim()||'Add a project and describe your contribution';let draft=`${n}\n${role}\n\nPROFESSIONAL SUMMARY\nMotivated candidate seeking an opportunity as ${role}. Eager to apply technical skills, learn quickly, and contribute to team goals.\n\nSKILLS\n${skills}\n\nPROJECTS\n${proj}\n\nEDUCATION\n${edu}\n\nEXPERIENCE\nAdd internships, training, certifications, or relevant experience.`;document.getElementById('resumeDraft').innerHTML=`<div class="result"><h3>Your resume draft</h3><textarea id="draftText" rows="12" style="width:100%;padding:10px;border:1px solid #dedfea;border-radius:9px">${esc(draft)}</textarea><button class="btn primary small" style="margin-top:10px" onclick="copyDraft()">Copy draft</button></div>`;toast('Resume draft created.')}
 function copyDraft(){let t=document.getElementById('draftText');t.select();try{document.execCommand('copy');toast('Draft copied.')}catch(e){toast('Select the draft text and copy it manually.')}}
