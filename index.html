@@ -154,6 +154,44 @@ function requestCoach(){let n=document.getElementById('coachName').value.trim(),
 async function taskChanged(el){let checks=[...document.querySelectorAll('.todo input')],done=checks.filter(x=>x.checked).length;document.getElementById('taskStatus').textContent=done+' of '+checks.length+' tasks complete';document.getElementById('careerProgress').style.width=(10+done*10)+'%';document.getElementById('careerProgressText').textContent=(10+done*10)+'%';if(sb&&el){const node=el.closest('.todo'),id=node?.dataset.taskId;if(id){const {error}=await sb.from('user_tasks').update({done:el.checked}).eq('id',id);if(error)toast('Task could not be saved: '+error.message)}}}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-if(sb){sb.auth.onAuthStateChange((event,session)=>{if(session)setTimeout(refreshDashboard,0)});window.addEventListener('DOMContentLoaded',()=>refreshDashboard())}
+if(sb){
+function updateAuthUI(session) {
+  document.getElementById("loginNav").hidden = !!session;
+  document.getElementById("signupNav").hidden = !!session;
+  document.getElementById("logoutNav").hidden = !session;
+}
+
+async function logoutUser() {
+  if (!sb) return;
+
+  const { error } = await sb.auth.signOut();
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  updateAuthUI(null);
+  toast("Logged out successfully.");
+}
+
+if (sb) {
+  sb.auth.onAuthStateChange((event, session) => {
+    updateAuthUI(session);
+
+    if (session) {
+      setTimeout(() => refreshDashboard(), 0);
+    }
+  });
+
+  sb.auth.getSession().then(({ data, error }) => {
+    if (!error) updateAuthUI(data.session);
+  });
+} else {
+  updateAuthUI(null);
+}
+
+window.addEventListener("DOMContentLoaded", () => refreshDashboard());
+
 </script>
 </body></html>
