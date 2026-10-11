@@ -14,7 +14,13 @@
 <header class="topbar"><div class="wrap nav">
  <a class="brand" href="#home" style="text-decoration:none;color:inherit"><span class="logo">P</span> PrepPilot</a>
  <nav class="navlinks"><a href="#tools">Resume Analyzer</a><a href="#tools">Build Resume</a><a href="#tools">Mock Tests</a><a href="#coaching">Coaching</a><a href="#subscription">Subscription</a></nav>
- <div class="navactions"><button class="btn secondary small" onclick="openModal('login')">Log in</button><button class="btn primary small" onclick="openModal('signup')">Sign up ↗</button></div>
+
+<div class="navactions">
+  <button id="loginNav" class="btn secondary small" onclick="openModal('login')">Log in</button>
+  <button id="signupNav" class="btn primary small" onclick="openModal('signup')">Sign up ↗</button>
+  <button id="logoutNav" class="btn secondary small" onclick="logoutUser()" hidden>Log out</button>
+</div>
+
 </div></header>
 <main id="home">
 <section class="hero"><div class="wrap hero-grid"><div>
